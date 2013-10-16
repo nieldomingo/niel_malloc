@@ -138,7 +138,7 @@ void niel_free(void *ptr)
 
 }
 
-void *niel_calloc (size_t nr, size_t size)
+void *niel_calloc(size_t nr, size_t size)
 {
     void *mem_ptr = NULL;
     
@@ -148,6 +148,65 @@ void *niel_calloc (size_t nr, size_t size)
 
     return mem_ptr;
 }
+
+void *niel_realloc(void *ptr, size_t size)
+{
+    mem_blk_header *blk = calc_head_blk(ptr);
+    size_t size_to_allocate = align8(size);
+
+    if (blk->next == NULL)
+    {
+        /* case: the blk is a the end of the heap and we
+         * can fulfill the request by allocating more memory
+         */
+
+
+        void *new_mem = sbrk(size_to_allocate);
+        if (new_mem == (void *)-1)
+            return NULL;
+
+        blk->blk_size += size_to_allocate;
+
+        return ptr;
+    }
+    else
+    {
+        if (blk->next->assigned_flag == 0 && \
+            (blk->next->blk_size + mem_blk_header_size) >= size_to_allocate)
+        {
+            /*
+             * case: the current block precedes a free block that can be allocated
+             * to satisfy the requested memory.
+             */
+            size_t excess_size = blk->next->blk_size + mem_blk_header_size - size_to_allocate;
+            if (excess_size >= MINIMUM_BLK_SIZE) 
+            {
+                mem_blk_header *new_blk = (mem_blk_header *)((char *)(blk->mem_blk) + size_to_allocate);
+                new_blk->prev = blk;
+                new_blk->next = blk->next;
+                new_blk->blk_size = excess_size - mem_blk_header_size;
+            }
+            else
+            {
+                blk->next = blk->next->next;
+                blk->blk_size = blk->next->blk_size + mem_blk_header_size;
+            }
+        }
+        else if (blk->prev->assigned_flag == 0 && \
+            (blk->prev->blk_size + mem_blk_header_size) >= size_to_allocate &&
+            blk->next->assigned_flag == 1)
+        {
+            /*
+             * case: current block follows a free block that can be allocated
+             * to satisfy the requested memory.
+             */
+        }
+    }
+}
+
+/*
+ * TODO: write tests for each allocation function
+ */
 
 int main(int argc, char *argv[])
 {

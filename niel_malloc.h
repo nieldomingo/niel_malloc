@@ -1,6 +1,8 @@
 
 #define align8(x) (((((x) - 1)>>3)<<3)+8)
 #define calc_mem_blk(x) (void *)((char *)(x) + mem_blk_header_size)
+#define calc_head_blk(x) (void *)((char *)(x) - mem_blk_header_size)
+#define MINIMUM_BLK_SIZE (2 * mem_blk_header_size)
 
 typedef struct mem_blk_header {
     struct mem_blk_header *next;
@@ -18,4 +20,5 @@ mem_blk_header *assign_blk(mem_blk_header *blk, size_t size);
 void *niel_malloc(size_t size);
 void collapse_consecutive_blks(mem_blk_header *start_blk);
 void niel_free(void *ptr);
-void *niel_calloc (size_t nr, size_t size);
+void *niel_calloc(size_t nr, size_t size);
+void *niel_realloc(void *ptr, size_t size);
