@@ -172,13 +172,13 @@ void *niel_realloc(void *ptr, size_t size)
     else
     {
         if (blk->next->assigned_flag == 0 && \
-            (blk->next->blk_size + mem_blk_header_size) >= size_to_allocate)
+            total_blk_size(blk->next) >= size_to_allocate)
         {
             /*
              * case: the current block precedes a free block that can be allocated
              * to satisfy the requested memory.
              */
-            size_t excess_size = blk->next->blk_size + mem_blk_header_size - size_to_allocate;
+            size_t excess_size = total_blk_size(blk->next) - size_to_allocate;
             if (excess_size >= MINIMUM_BLK_SIZE) 
             {
                 mem_blk_header *new_blk = (mem_blk_header *)((char *)(blk->mem_blk) + size_to_allocate);
@@ -189,17 +189,47 @@ void *niel_realloc(void *ptr, size_t size)
             else
             {
                 blk->next = blk->next->next;
-                blk->blk_size = blk->next->blk_size + mem_blk_header_size;
+                blk->blk_size = total_blk_size(blk->next);
             }
         }
         else if (blk->prev->assigned_flag == 0 && \
-            (blk->prev->blk_size + mem_blk_header_size) >= size_to_allocate &&
+            total_blk_size(blk->prev) >= size_to_allocate && \
             blk->next->assigned_flag == 1)
         {
             /*
              * case: current block follows a free block that can be allocated
              * to satisfy the requested memory.
              */
+            mem_blk_header *prev = blk->prev;
+            
+            size_t excess_size = total_blk_size(prev) - size_to_allocate;
+            if (excess_size >= MINIMUM_BLK_SIZE)
+            {
+                mem_blk_header *new_blk = (mem_blk_header *)((char *)(prev->mem_blk) + prev->blk_size);
+                new_blk->assigned_flag = 0;
+                new_blk->prev = prev;
+                new_blk->next = blk->next;
+                new_blk->mem_blk = calc_mem_blk(new_blk);
+                new_blk->blk_size = prev->blk_size - size_to_allocate;
+                
+                prev->assigned_flag = 1;
+                prev->blk_size += size_to_allocate;
+                prev->next = new_blk;
+
+                memmove(prev->mem_blk, blk->mem_blk, blk->blk_size);
+            }
+            else
+            {
+                prev->assigned_flag = 1;
+                prev->blk_size += total_blk_size(blk);
+                prev->next = blk->next;
+                
+                memmove(prev->mem_blk, blk->mem_blk, blk->blk_size);
+            }
+        }
+        else if (blk->prev->assigned_flag == 0 && blk->next->assigned_flag == 0 && \
+            (total_blk_size(blk->prev) + total_blk_size(blk->next)) >= size_to_allocate )
+        {
         }
     }
 }

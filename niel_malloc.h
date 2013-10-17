@@ -3,6 +3,7 @@
 #define calc_mem_blk(x) (void *)((char *)(x) + mem_blk_header_size)
 #define calc_head_blk(x) (void *)((char *)(x) - mem_blk_header_size)
 #define MINIMUM_BLK_SIZE (2 * mem_blk_header_size)
+#define total_blk_size(x) (mem_blk_header_size + (x)->blk_size)
 
 typedef struct mem_blk_header {
     struct mem_blk_header *next;
