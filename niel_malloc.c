@@ -205,10 +205,14 @@ void *niel_realloc(void *ptr, size_t size)
             size_t excess_size = total_blk_size(prev) - size_to_allocate;
             if (excess_size >= MINIMUM_BLK_SIZE)
             {
-                mem_blk_header *new_blk = (mem_blk_header *)((char *)(prev->mem_blk) + prev->blk_size);
+                mem_blk_header *next = blk->next;
+                memmove(prev->mem_blk, blk->mem_blk, blk->blk_size);
+
+                mem_blk_header *new_blk = (mem_blk_header *)((char *)(prev->mem_blk) + \
+                        prev->blk_size + size_to_allocate);
                 new_blk->assigned_flag = 0;
                 new_blk->prev = prev;
-                new_blk->next = blk->next;
+                new_blk->next = next;
                 new_blk->mem_blk = calc_mem_blk(new_blk);
                 new_blk->blk_size = prev->blk_size - size_to_allocate;
                 
@@ -216,7 +220,6 @@ void *niel_realloc(void *ptr, size_t size)
                 prev->blk_size += size_to_allocate;
                 prev->next = new_blk;
 
-                memmove(prev->mem_blk, blk->mem_blk, blk->blk_size);
             }
             else
             {
@@ -230,6 +233,38 @@ void *niel_realloc(void *ptr, size_t size)
         else if (blk->prev->assigned_flag == 0 && blk->next->assigned_flag == 0 && \
             (total_blk_size(blk->prev) + total_blk_size(blk->next)) >= size_to_allocate )
         {
+            size_t excess_size = total_blk_size(blk->prev) + total_blk_size(blk->next) - size_to_allocate;
+            if (excess_size >= MINIMUM_BLK_SIZE)
+            {
+                /*
+                 * save addresses and sizes
+                 */
+                mem_blk_header *prev = blk->prev;
+                mem_blk_header *next_next = blk->next->next;
+                size_t current_size = blk->blk_size;
+
+                memmove(prev->mem_blk, blk->mem_blk, blk->blk_size);
+
+                mem_blk_header *new_blk = (mem_blk_header *)((char *)(prev->next) + size_to_allocate);
+                new_blk->assigned_flag = 0;
+                new_blk->prev = prev;
+                new_blk->next = next_next;
+                new_blk->mem_blk = calc_mem_blk(new_blk);
+                new_blk->blk_size = excess_size - mem_blk_header_size;
+
+                prev->assigned_flag = 1;
+                prev->blk_size = current_size + size_to_allocate;
+                prev->next = new_blk;
+
+            }
+            else
+            {
+                prev->assigned_flag = 1;
+                prev->blk_size = blk->blk_size + size_to_allocate;
+                prev->next = blk->next->next;
+
+                memmove(prev->mem_blk, blk->mem_blk, blk->blk_size);
+            }
         }
     }
 }
