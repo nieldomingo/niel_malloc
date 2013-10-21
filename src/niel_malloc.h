@@ -1,3 +1,7 @@
+#ifndef __niel_malloc_h__
+#define __niel_malloc_h__
+
+#include <stdlib.h>
 
 #define align8(x) (((((x) - 1)>>3)<<3)+8)
 #define calc_mem_blk(x) (void *)((char *)(x) + mem_blk_header_size)
@@ -23,3 +27,5 @@ void collapse_consecutive_blks(mem_blk_header *start_blk);
 void niel_free(void *ptr);
 void *niel_calloc(size_t nr, size_t size);
 void *niel_realloc(void *ptr, size_t size);
+
+#endif

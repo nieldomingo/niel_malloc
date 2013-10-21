@@ -259,6 +259,8 @@ void *niel_realloc(void *ptr, size_t size)
             }
             else
             {
+                mem_blk_header *prev = blk->prev;
+
                 prev->assigned_flag = 1;
                 prev->blk_size = blk->blk_size + size_to_allocate;
                 prev->next = blk->next->next;
@@ -273,6 +275,7 @@ void *niel_realloc(void *ptr, size_t size)
  * TODO: write tests for each allocation function
  */
 
+/*
 int main(int argc, char *argv[])
 {
     int *arr1, *arr2, *arr3;
@@ -300,3 +303,4 @@ int main(int argc, char *argv[])
     niel_free(arr3);
 
 }
+*/
