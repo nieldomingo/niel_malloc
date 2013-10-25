@@ -115,9 +115,43 @@ void collapse_consecutive_blks(mem_blk_header *start_blk)
 
 void niel_free(void *ptr)
 {
-    mem_blk_header *blk = (mem_blk_header *)((char *)ptr - mem_blk_header_size);
+    mem_blk_header *blk = calc_head_blk(ptr);
     
     blk->assigned_flag = 0;
+
+    /*
+     * check if current blk is at the end
+     */
+    if (blk->next == NULL)
+    {
+        if (blk->prev == NULL)
+        {
+            sbrk(-total_blk_size(blk));
+            heap_start = NULL;
+        }
+        else if (blk->prev != NULL && blk->prev->assigned_flag == 1)
+        {
+            mem_blk_header *prev = blk->prev;
+            prev->next = NULL;
+            sbrk(-total_blk_size(blk));
+        }
+        else if (blk->prev != NULL && blk->prev->assigned_flag == 0)
+        {
+            mem_blk_header *prev_prev = blk->prev->prev;
+            mem_blk_header *prev = blk->prev;
+            if (prev_prev != NULL)
+            {
+                prev_prev->next = NULL;
+            }
+            else
+            {
+                heap_start = NULL;
+            }
+            sbrk(-total_blk_size(blk) - total_blk_size(prev));
+        }
+
+        return;
+    }
 
     /*
      * check if succeeding blk can be combined with current block
